@@ -1,0 +1,36 @@
+@font-face {
+  font-family: Matrix;
+  src: url("../fonts/matrix code nfi.ttf");
+}
+body {
+  background: #000000;
+  margin: 0;
+  overflow: hidden;
+  padding: 0;
+}
+#system-failure {
+	background-color: #0B2017;
+	border: 2px solid #ACE3CC;
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	margin-left: -72px;
+	margin-top: -9px;
+	z-index: 999;
+	color: #84FFA8;
+	width: 144px;
+	height: 18px;
+	display: table;
+	padding-top: 1px;
+	visibility: hidden;
+}
+
+#system-failure div {
+	display: table-cell;
+	vertical-align: middle;
+	text-align: center;
+	font-family: 'Courier';
+	font-weight: bold;
+	text-shadow: 0px 0px 2px rgba(141, 248, 176, 1);
+
+}

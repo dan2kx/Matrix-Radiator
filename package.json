@@ -1,0 +1,21 @@
+{
+  "name": "Matrix-Radiator",
+  "version": "1.0.0",
+  "description": "Matrix Radiator Hooked up to Circle-CI",
+  "main": "index.html",
+  "scripts": {
+    "start": "node server.js",
+    "test": "mocha"
+  },
+  "author": "Daniel McGowan",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.16.3"
+  },
+  "devDependencies": {
+    "chai": "^4.1.2",
+    "mocha": "^5.0.5",
+    "sinon": "^4.5.0",
+    "sinon-chai": "^3.0.0"
+  }
+}
