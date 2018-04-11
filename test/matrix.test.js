@@ -2,7 +2,11 @@ var chai = require('chai');
 var sinon = require("sinon");
 var sinonChai = require("sinon-chai");
 var Matrix = require('../js/Matrix.js')
+var MatrixConfig = require('../js/Matrix.json')
+
 var expect = chai.expect;
+
+global.XMLHttpRequest = sinon.useFakeXMLHttpRequest();
 
 chai.use(sinonChai);
 
@@ -40,6 +44,13 @@ describe('Matrix Radiator', function() {
       matrix.start();
       expect(matrix._getActive()).to.be.true;
     });
+
+    it('should call setConfig if config is undefined', function() {
+      expect(matrix._getConfig()).to.be.undefined;
+      var spy = sinon.spy(matrix, '_setConfig');
+      matrix.start();
+      expect(spy).to.have.been.called;
+    })
 
   });
 
@@ -128,6 +139,38 @@ describe('Matrix Radiator', function() {
       expect(spy).to.have.been.calledOnce;
     })
 
+  })
+  //https://circleci.com/api/v1.1/projects?circle-token=7ac0963c8afaa7852175b34f1a3e89c5a5701af1
+  describe('api tests', function() {
+
+    beforeEach(function() {
+      this.server = sinon.createFakeServer();
+    })
+
+    afterEach(function() {
+      this.server.restore();
+    })
+
+    it('should get the circle-ci key from the json file', function() {
+      this.server.respondWith('js/matrix.json', function (xhr) {
+          xhr.respond(200, { "Content-Type": "application/json" }, JSON.stringify(MatrixConfig));
+      });
+      var callback = sinon.spy();
+      matrix._setConfig(callback);
+      this.server.respond();
+      expect(callback).to.have.been.called;
+    })
+
+    // it('should fake a call circle-ci profiles method and return data', function() {
+    //   matrix.start();
+    //   var matrixConfig = matrix._getConfig() || {};
+    //   this.server.respondWith('https://circleci.com/api/v1.1/projects?circle-token=' + matrixConfig.circleKey, function (xhr) {
+    //       xhr.respond(200, { "Content-Type": "application/json" }, JSON.stringify({}));
+    //   });
+    //   var callback = sinon.spy();
+    //   this.server.respond();
+    //   expect(callback).to.have.been.called;
+    // })
   })
 
 });

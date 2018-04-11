@@ -14,11 +14,12 @@
     var _this = this;
     var active = false;
     var systemFailure = false;
+    var matrixConfig = undefined;
     var colors = ['#84FFA8', '#67F383', '#009933'];
     var characters = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!$%^&*(){}[];:#~<>?,./|\\=+-';
     var matrixDrawInterval = undefined;
 
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && typeof document !== 'undefined' && document.getElementById("matrix-canvas") !== null) {
       var screen = window.screen;
       var matrixCanvas = document.getElementById("matrix-canvas");
       var canvasContext = matrixCanvas.getContext('2d');
@@ -75,44 +76,73 @@
 
     this._getActive = function() {
       return active;
-    };
+    }
+
+    this._getConfig = function() {
+      return matrixConfig;
+    }
 
     this._getSystemFailure = function() {
       return systemFailure;
-    };
+    }
 
     this._setActive = function() {
       active = !active;
-    };
+    }
+
+    this._setConfig = function(callback) {
+      var xmlhttp = new XMLHttpRequest();
+      xmlhttp.onreadystatechange = function() {
+        if (this.readyState === 4 && this.status === 200) {
+          var myObj = JSON.parse(this.responseText);
+          if (typeof callback === 'function') {
+            callback(this.response);
+          }
+        }
+        else {
+          callback(undefined);
+        }
+      };
+      xmlhttp.open("GET", "js/matrix.json", true);
+      xmlhttp.send();
+    }
+
     this._setSystemFailure = function(bool) {
       systemFailure = bool;
-    };
+    }
 
     this.start = function() {
-      if (this._getActive() === false) {
-        this._setActive();
-        if (typeof matrixDrawInterval !== 'undefined') {
-          clearInterval(matrixDrawInterval);
-        };
-        matrixDrawInterval = setInterval(function() {
-          if (_this._getSystemFailure() === false) {
-            _this._drawMatrix();
-          } else {
-            _this.stop();
-            _this._drawSystemFailure();
-          }
-        }, 50);
-      };
-    };
+      var start = function() {
+        if (_this._getActive() === false) {
+          _this._setActive();
+          if (typeof matrixDrawInterval !== 'undefined') {
+            clearInterval(matrixDrawInterval);
+          };
+          matrixDrawInterval = setInterval(function() {
+            if (_this._getSystemFailure() === false) {
+              _this._drawMatrix();
+            } else {
+              _this.stop();
+              _this._drawSystemFailure();
+            }
+          }, 50);
+        }
+      }
+      if (typeof this._getConfig() !== 'undefined') {
+        start();
+      } else {
+        this._setConfig(start);
+      }
+    }
 
     this.stop = function() {
       if (this._getActive() === true) {
         this._setActive();
         if (typeof matrixDrawInterval !== 'undefined') {
           clearInterval(matrixDrawInterval);
-        };
-      };
-    };
+        }
+      }
+    }
 
   }
 
