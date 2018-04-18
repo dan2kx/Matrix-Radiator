@@ -71,19 +71,47 @@ describe('Matrix Radiator', function() {
 
   });
 
-  describe('system failure', function() {
-    it('should begin with systemFailure as false', function() {
-      expect(matrix._getSystemFailure()).to.be.false;
+  describe('build status', function() {
+    it('should begin with build status as success', function() {
+      expect(matrix.getBuildStatus()).to.equal('success');
     })
 
-    it('should remain with systemFailure as false when matrix is started', function() {
+    it('should remain with build status as false when matrix is started', function() {
       matrix.start();
-      expect(matrix._getSystemFailure()).to.be.false;
+      expect(matrix.getBuildStatus()).to.equal('success');
     })
 
-    it('should set the error condition when called with true', function() {
-      matrix._setSystemFailure(true);
-      expect(matrix._getSystemFailure()).to.be.true;
+    it('should set the build status as failed when checkBuildStatus detects a failed', function() {
+      var stub = sinon.stub(matrix, 'getBuilds').callsFake(function() {
+        return [ { state: 'failed' } ]
+      });
+      matrix._checkBuildStatus();
+      expect(matrix.getBuildStatus()).to.equal('failed');
+    })
+
+  })
+
+  describe('circle-ci build', function () {
+    var response = [{
+      branches: {
+        a: {
+          recent_builds: [{ outcome: 'success'}], running_builds: []
+        },
+        b: {
+          recent_builds: [{ outcome: 'failed'}], running_builds: []
+        }
+      }
+    }]
+
+    it('should set a fake circle-ci response and build array with two status', function() {
+      matrix._setBuildStatus(response);
+      expect(matrix.getBuilds()).to.have.lengthOf(2);
+    })
+
+    it('should expect check status to set system failure to false if a branch has failed', function() {
+      matrix._setBuildStatus(response);
+      matrix._checkBuildStatus();
+      expect(matrix.getBuildStatus()).to.equal('failed');
     })
 
   })
@@ -121,56 +149,67 @@ describe('Matrix Radiator', function() {
       expect(spy).to.have.been.calledOnce;
     })
 
-    it('should cause the matrix to stop and set active to false when systemFailure is true', function() {
+    it('should cause the matrix to stop and set active to false when build status is failed', function() {
+      var stub = sinon.stub(matrix, 'getBuilds').callsFake(function() {
+        return [ { state: 'failed' } ]
+      });
       matrix.start();
-      matrix._setSystemFailure(true);
+      matrix._checkBuildStatus();
       clock.tick(50);
       expect(matrix._getActive()).to.be.false;
     })
 
-    it('should cause the matrix to stop the drawing when systemFailure is called with true', function() {
+    it('should cause the matrix to stop the drawing when build status is failed', function() {
       var spy = sinon.spy(matrix, '_drawMatrix');
       matrix.start();
       expect(spy).to.have.been.not.called;
       clock.tick(50);
       expect(spy).to.have.been.calledOnce;
-      matrix._setSystemFailure(true);
+      var stub = sinon.stub(matrix, 'getBuilds').callsFake(function() {
+        return [ { state: 'failed' } ]
+      });
+      matrix._checkBuildStatus();
       clock.tick(50);
       expect(spy).to.have.been.calledOnce;
     })
 
   })
-  //https://circleci.com/api/v1.1/projects?circle-token=7ac0963c8afaa7852175b34f1a3e89c5a5701af1
+
   describe('api tests', function() {
+    var server;
 
     beforeEach(function() {
-      this.server = sinon.createFakeServer();
+      server = sinon.createFakeServer();
+      server.respondWith('js/matrix.json', function (xhr) {
+          xhr.respond(200, { "Content-Type": "application/json" }, JSON.stringify(MatrixConfig));
+      })
     })
 
     afterEach(function() {
-      this.server.restore();
+      server.restore();
     })
 
     it('should get the circle-ci key from the json file', function() {
-      this.server.respondWith('js/matrix.json', function (xhr) {
-          xhr.respond(200, { "Content-Type": "application/json" }, JSON.stringify(MatrixConfig));
-      });
       var callback = sinon.spy();
       matrix._setConfig(callback);
-      this.server.respond();
+      server.respond();
+      expect(callback).to.have.been.called;
+      expect(matrix._getConfig()).to.have.property('circleKey')
+    })
+
+    it('should fake a call circle-ci profiles method and return data', function() {
+      matrix._setConfig();
+      server.respond();
+      var matrixConfig = matrix._getConfig();
+      server.respondWith('https://circleci.com/api/v1.1/projects?circle-token=' + matrixConfig.circleKey, function (xhr) {
+          xhr.respond(200, { "Content-Type": "application/json" }, JSON.stringify([]));
+      });
+      var callback = sinon.spy();
+      matrix._getBuildStatusFromAPI(callback);
+      server.respond();
       expect(callback).to.have.been.called;
     })
 
-    // it('should fake a call circle-ci profiles method and return data', function() {
-    //   matrix.start();
-    //   var matrixConfig = matrix._getConfig() || {};
-    //   this.server.respondWith('https://circleci.com/api/v1.1/projects?circle-token=' + matrixConfig.circleKey, function (xhr) {
-    //       xhr.respond(200, { "Content-Type": "application/json" }, JSON.stringify({}));
-    //   });
-    //   var callback = sinon.spy();
-    //   this.server.respond();
-    //   expect(callback).to.have.been.called;
-    // })
   })
 
 });

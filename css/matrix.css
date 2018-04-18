@@ -2,12 +2,14 @@
   font-family: Matrix;
   src: url("../fonts/matrix code nfi.ttf");
 }
+
 body {
   background: #000000;
   margin: 0;
   overflow: hidden;
   padding: 0;
 }
+
 #system-failure {
 	background-color: #0B2017;
 	border: 2px solid #ACE3CC;

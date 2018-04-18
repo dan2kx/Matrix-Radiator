@@ -10,6 +10,7 @@
   "author": "Daniel McGowan",
   "license": "MIT",
   "dependencies": {
+    "canvas-prebuilt": "^1.6.5-prerelease.1",
     "express": "^4.16.3",
     "jsdom": "^11.7.0"
   },
