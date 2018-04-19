@@ -10,38 +10,43 @@
   }
 })(typeof global !== 'undefined' ? global : this.window || this.global, function(root) {
 
-  function Matrix () {
+  function Matrix() {
     var _this = this;
     var active = false;
     var builds = [];
     var buildStatus = 'success';
     var colors = ['#84FFA8', '#67F383', '#009933'];
     var characters = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!$%^&*(){}[];:#~<>?,./|\\=+-';
+    var digits = '0123456789';
     var matrixConfig = undefined;
     var matrixDrawInterval = undefined;
     var matrixBuildStatusInterval = undefined;
 
     if (typeof window !== 'undefined') {
-      var screen = window.screen;
       var matrixCanvas = document.getElementById("matrix-canvas");
       var canvasContext = matrixCanvas.getContext('2d');
 
-      var width = matrixCanvas.width = screen.width;
-      var height = matrixCanvas.height = screen.height;
+      var width = matrixCanvas.width = window.innerWidth;
+      var height = matrixCanvas.height = window.innerHeight;
       var Scale = 1;
-      var xOffset = 10 * Scale;
+      var xOffset = 15 * Scale;
       var yOffset = 15 * Scale;
-      var columns = Math.floor(width / xOffset) + 1;
+
+      var columns = Math.floor(width / yOffset) + 1;
+      var rows = Math.floor(height / xOffset) + 1;
+
+      var tCount = 0;
+      var tDigits = [];
+      var tPositions = [];
 
       var yPositions = Array(columns).join(0).split('');
       var yColors = Array(columns).join('').split('');
 
-      this._drawMatrix = function() {
-        var xPositions = [];
-        var getColor = function() {
-          return colors[Math.floor(Math.random() * colors.length)];
-        }
+      var getColor = function() {
+        return colors[Math.floor(Math.random() * colors.length)];
+      }
 
+      this._drawMatrix = function() {
         canvasContext.fillStyle = 'rgba(0, 0, 0, .05)';
         canvasContext.fillRect(0, 0, width, height);
         canvasContext.font = Scale + '0pt Matrix';
@@ -53,7 +58,6 @@
           var x = index * xOffset;
 
           if (y > max) {
-            xPositions.push(index);
             yPositions[index] = 0;
             yColors[index] = getColor();
           } else {
@@ -66,14 +70,63 @@
 
       };
 
-      this._drawSystemFailure = function() {
-        document.getElementById('system-failure').style.visibility = 'visible';
+      this._drawAreaReset = function() {
+        tCount = 0;
+        tPositions = [];
+        tDigits = [];
+        canvasContext.clearRect(0, 0, width, height);
       }
-    }
-    else {
+
+      this._drawSystemFailure = function(state) {
+        document.getElementById('system-failure').style.visibility = state;
+      }
+
+      this._drawTrace = function() {
+        canvasContext.fillStyle = 'rgba(0, 0, 0, .05)';
+        canvasContext.fillRect(0, 1 * yOffset, width, height);
+        canvasContext.font = Scale + '0pt Courier';
+
+        var yArray = (function(a, b) {
+          while (a--) b[a] = Math.floor(Math.random() * rows);
+          return b
+        })(columns, []);
+
+        var xArray = (function(a, b) {
+          while (a--) b[a] = Math.floor(Math.random() * columns);
+          return b
+        })(rows, []);
+
+        for (var x = 0; x < xArray.length / 3; x++) {
+          var columnExcluded = tPositions.indexOf(xArray[x]);
+          if (columnExcluded === -1) {
+            for (var y = 0; y < yArray.length / 3; y++) {
+              var char = Math.floor(Math.random() * digits.length);
+              var text = digits.substring(char, char + 1);
+              if (yArray[y] === 1) {
+                yArray[y] = 2;
+              }
+              canvasContext.fillStyle = getColor();
+              canvasContext.fillText(text, xArray[x] * xOffset, yArray[y] * yOffset);
+            }
+          } else {
+            canvasContext.fillText(tDigits[columnExcluded], xArray[x] * xOffset, 1 * yOffset);
+          }
+        }
+
+        if (tCount === 3) {
+          tCount = 0;
+          tDigits.push(text);
+          tPositions.push(Math.floor(Math.random() * columns));
+        }
+        ++tCount;
+      }
+
+    } else {
       //null for testing without browser
+      this._drawAreaReset = function() {};
       this._drawMatrix = function() {};
       this._drawSystemFailure = function() {};
+      this._drawTrace = function() {};
     }
 
     this._getActive = function() {
@@ -110,18 +163,18 @@
     this._setBuildStatus = function(response) {
       if (typeof response !== 'undefined') {
         builds = response.reduce(function(acc, repository) {
-           return acc.concat(Object.keys(repository.branches).map(function(branchName) {
-              var branch = repository.branches[branchName];
-              var buildIsRunning = branch.running_builds.length !== 0;
-              var build = buildIsRunning ? branch.running_builds[0] : branch.recent_builds[0];
-              var status = buildIsRunning ? build.status : build.outcome;
-              return {
-                 repository: repository.reponame,
-                 branch: branchName,
-                 started: new Date(build.pushed_at),
-                 state: status
-              }
-           }))
+          return acc.concat(Object.keys(repository.branches).map(function(branchName) {
+            var branch = repository.branches[branchName];
+            var buildIsRunning = branch.running_builds.length !== 0;
+            var build = buildIsRunning ? branch.running_builds[0] : branch.recent_builds[0];
+            var status = buildIsRunning ? build.status : build.outcome;
+            return {
+              repository: repository.reponame,
+              branch: branchName,
+              started: new Date(build.pushed_at),
+              state: status
+            }
+          }))
         }, [])
       }
     }
@@ -147,7 +200,7 @@
     }
 
     this.getBuilds = function() {
-        return builds;
+      return builds;
     }
 
     this.getBuildStatus = function() {
@@ -161,20 +214,29 @@
           if (typeof matrixDrawInterval !== 'undefined') {
             clearInterval(matrixDrawInterval);
           }
+          var prevBuildStatus = undefined;
           matrixDrawInterval = setInterval(function() {
             _this._checkBuildStatus();
             var buildStatus = _this.getBuildStatus();
+            if (buildStatus !== 'failed' && prevBuildStatus !== buildStatus) {
+              prevBuildStatus = buildStatus;
+              _this._drawAreaReset();
+              _this._drawSystemFailure('hidden');
+            }
             if (buildStatus === 'success') {
               _this._drawMatrix();
             } else if (buildStatus === 'failed') {
-              _this.stop();
-              _this._drawSystemFailure();
+              _this.stopDrawing();
+              _this._drawSystemFailure('visible');
+            } else if (buildStatus === 'running') {
+              _this._drawTrace();
             }
           }, 50);
         }
         if (typeof matrixBuildStatusInterval === 'undefined') {
           matrixBuildStatusInterval = setInterval(function() {
             _this._getBuildStatusFromAPI(_this._setBuildStatus);
+            start();
           }, 60000);
         }
       }
@@ -185,12 +247,19 @@
       }
     }
 
-    this.stop = function() {
+    this.stopDrawing = function() {
       if (this._getActive() === true) {
         this._setActive();
         if (typeof matrixDrawInterval !== 'undefined') {
           clearInterval(matrixDrawInterval);
         }
+      }
+    }
+
+    this.stop = function() {
+      this.stopDrawing();
+      if (typeof matrixBuildStatusInterval !== 'undefined') {
+        clearInterval(matrixBuildStatusInterval);
       }
     }
 

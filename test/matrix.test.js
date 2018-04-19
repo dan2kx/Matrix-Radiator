@@ -16,10 +16,16 @@ describe('Matrix Radiator', function() {
   });
 
   var matrix;
+  var clock;
 
   beforeEach(function() {
     matrix = new Matrix();
     matrix._drawMatrix = function() {};
+    clock = sinon.useFakeTimers();
+  });
+
+  afterEach(function () {
+    clock.restore();
   });
 
   describe('start Matrix', function() {
@@ -56,16 +62,16 @@ describe('Matrix Radiator', function() {
 
   describe('stop Matrix', function() {
     it('should execute Matrix stop when called', function() {
-      var spy = sinon.spy(matrix, 'stop');
+      var spy = sinon.spy(matrix, 'stopDrawing');
       matrix.start();
-      matrix.stop();
+      matrix.stopDrawing();
       expect(spy).to.have.been.called;
     });
 
     it('should set active to false when matrix stop is called', function() {
       expect(matrix._getActive()).to.be.false;
       matrix.start();
-      matrix.stop();
+      matrix.stopDrawing();
       expect(matrix._getActive()).to.be.false;
     });
 
@@ -82,11 +88,36 @@ describe('Matrix Radiator', function() {
     })
 
     it('should set the build status as failed when checkBuildStatus detects a failed', function() {
-      var stub = sinon.stub(matrix, 'getBuilds').callsFake(function() {
-        return [ { state: 'failed' } ]
+      var stub = sinon.stub(matrix, 'getBuildStatus').callsFake(function() {
+        return 'failed'
       });
-      matrix._checkBuildStatus();
+      var spy = sinon.spy(matrix, 'stopDrawing')
+      matrix.start();
+      clock.tick(50);
       expect(matrix.getBuildStatus()).to.equal('failed');
+      expect(spy).to.have.been.called;
+    })
+
+    it('should set the build status as failed when checkBuildStatus detects running', function() {
+      var stub = sinon.stub(matrix, 'getBuildStatus').callsFake(function() {
+        return 'running'
+      });
+      var spy = sinon.spy(matrix, '_drawTrace')
+      matrix.start();
+      clock.tick(50);
+      expect(matrix.getBuildStatus()).to.equal('running');
+      expect(spy).to.have.been.called;
+    })
+
+    it('should set the build status as failed when checkBuildStatus detects success', function() {
+      var stub = sinon.stub(matrix, 'getBuildStatus').callsFake(function() {
+        return 'success'
+      });
+      var spy = sinon.spy(matrix, '_drawMatrix')
+      matrix.start();
+      clock.tick(50);
+      expect(matrix.getBuildStatus()).to.equal('success');
+      expect(spy).to.have.been.called;
     })
 
   })
@@ -117,15 +148,8 @@ describe('Matrix Radiator', function() {
   })
 
   describe('timer tests', function() {
-    var clock;
-
     beforeEach(function () {
       matrix = new Matrix();
-      clock = sinon.useFakeTimers();
-    });
-
-    afterEach(function () {
-      clock.restore();
     });
 
     it('should start the draw timer when the matrix is started', function() {
@@ -144,7 +168,7 @@ describe('Matrix Radiator', function() {
       expect(spy).to.have.been.not.called;
       clock.tick(50);
       expect(spy).to.have.been.calledOnce;
-      matrix.stop();
+      matrix.stopDrawing();
       clock.tick(50);
       expect(spy).to.have.been.calledOnce;
     })
