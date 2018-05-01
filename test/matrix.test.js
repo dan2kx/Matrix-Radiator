@@ -122,30 +122,75 @@ describe('Matrix Radiator', function() {
 
   })
 
-  describe('circle-ci build', function () {
-    var response = [{
-      branches: {
-        a: {
-          recent_builds: [{ outcome: 'success'}], running_builds: []
-        },
-        b: {
-          recent_builds: [{ outcome: 'failed'}], running_builds: []
-        }
-      }
-    }]
+ 	describe('circle-ci build', function () {
+		describe('failed', function() {
+			var response = [{
+			  branches: {
+				a: {
+				  recent_builds: [{ outcome: 'success'}], running_builds: []
+				},
+				b: {
+				  recent_builds: [{ outcome: 'failed'}], running_builds: []
+				}
+			  }
+			}]
 
-    it('should set a fake circle-ci response and build array with two status', function() {
-      matrix._setBuildStatus(response);
-      expect(matrix.getBuilds()).to.have.lengthOf(2);
-    })
+			it('should set a fake circle-ci response and build array with two status', function() {
+			  matrix._setBuildStatus(response);
+			  expect(matrix.getBuilds()).to.have.lengthOf(2);
+			})
 
-    it('should expect check status to set system failure to false if a branch has failed', function() {
-      matrix._setBuildStatus(response);
-      matrix._checkBuildStatus();
-      expect(matrix.getBuildStatus()).to.equal('failed');
-    })
+			it('should expect check status to set failed', function() {
+			  matrix._setBuildStatus(response);
+			  matrix._checkBuildStatus();
+			  expect(matrix.getBuildStatus()).to.equal('failed');
+			})
+		});
 
-  })
+		describe('running', function() {
+			var response = [{
+			  branches: {
+				a: {
+				  recent_builds: [], running_builds: [{ outcome: 'running'}]
+				}
+			  }
+			}]
+
+			it('should set a fake circle-ci response and build array with one status', function() {
+			  matrix._setBuildStatus(response);
+			  expect(matrix.getBuilds()).to.have.lengthOf(1);
+			})
+
+			it('should expect check status to set system running', function() {
+			  matrix._setBuildStatus(response);
+			  matrix._checkBuildStatus();
+			  expect(matrix.getBuildStatus()).to.equal('failed');
+			})
+		})
+
+		describe('success', function() {
+			var response = [{
+			  branches: {
+				a: {
+				  recent_builds: [{ outcome: 'success'}], running_builds: []
+				}
+			  }
+			}]
+
+			it('should set a fake circle-ci response and build array with one status', function() {
+			  matrix._setBuildStatus(response);
+			  expect(matrix.getBuilds()).to.have.lengthOf(1);
+			})
+
+			it('should expect check status to set system running', function() {
+			  matrix._setBuildStatus(response);
+			  matrix._checkBuildStatus();
+			  expect(matrix.getBuildStatus()).to.equal('failed');
+			})
+		})
+
+	})
+
 
   describe('timer tests', function() {
     beforeEach(function () {
