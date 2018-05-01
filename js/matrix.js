@@ -187,7 +187,7 @@
       var buildIsFailing = builds.some(function(build) {
         return build.state === 'failed';
       })
-      buildStatus = buildIsRunning && 'status' || buildIsFailing && 'failed' || 'success';
+      buildStatus = buildIsRunning && 'running' || buildIsFailing && 'failed' || 'success';
     }
 
     this._setConfig = function(callback) {
