@@ -127,10 +127,10 @@ describe('Matrix Radiator', function() {
 			var response = [{
 			  branches: {
 				a: {
-				  recent_builds: [{ outcome: 'success'}], running_builds: []
+				  recent_builds: [{ outcome: 'success' }], running_builds: []
 				},
 				b: {
-				  recent_builds: [{ outcome: 'failed'}], running_builds: []
+				  recent_builds: [{ outcome: 'failed' }], running_builds: []
 				}
 			  }
 			}]
@@ -151,7 +151,7 @@ describe('Matrix Radiator', function() {
 			var response = [{
 			  branches: {
 				a: {
-				  recent_builds: [], running_builds: [{ outcome: 'running'}]
+				  recent_builds: [], running_builds: [{ status: 'running' }]
 				}
 			  }
 			}]
@@ -164,7 +164,7 @@ describe('Matrix Radiator', function() {
 			it('should expect check status to set system running', function() {
 			  matrix._setBuildStatus(response);
 			  matrix._checkBuildStatus();
-			  expect(matrix.getBuildStatus()).to.equal('failed');
+			  expect(matrix.getBuildStatus()).to.equal('running');
 			})
 		})
 
@@ -172,7 +172,7 @@ describe('Matrix Radiator', function() {
 			var response = [{
 			  branches: {
 				a: {
-				  recent_builds: [{ outcome: 'success'}], running_builds: []
+				  recent_builds: [{ outcome: 'success' }], running_builds: []
 				}
 			  }
 			}]
@@ -185,7 +185,7 @@ describe('Matrix Radiator', function() {
 			it('should expect check status to set system running', function() {
 			  matrix._setBuildStatus(response);
 			  matrix._checkBuildStatus();
-			  expect(matrix.getBuildStatus()).to.equal('failed');
+			  expect(matrix.getBuildStatus()).to.equal('success');
 			})
 		})
 
