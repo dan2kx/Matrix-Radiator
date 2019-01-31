@@ -161,18 +161,23 @@
     }
 
     this._setBuildStatus = function(response) {
+        var config = _this._getConfig();
       if (typeof response !== 'undefined') {
         builds = response.reduce(function(acc, repository) {
           return acc.concat(Object.keys(repository.branches).map(function(branchName) {
             var branch = repository.branches[branchName];
-            var buildIsRunning = branch.running_builds.length !== 0;
-            var build = buildIsRunning ? branch.running_builds[0] : branch.recent_builds[0];
-            var status = buildIsRunning ? build.status : build.outcome;
-            return {
-              repository: repository.reponame,
-              branch: branchName,
-              started: new Date(build.pushed_at),
-              state: status
+            if(config.branches.indexOf(branchName)  > -1) {
+                var buildIsRunning = branch.running_builds.length !== 0;
+                var build = buildIsRunning ? branch.running_builds[0] : branch.recent_builds[0];
+                var status = buildIsRunning ? build.status : build.outcome;
+                return {
+                    repository: repository.reponame,
+                    branch: branchName,
+                    started: new Date(build.pushed_at),
+                    state: status
+                }
+            } else {
+                return false
             }
           }))
         }, [])
